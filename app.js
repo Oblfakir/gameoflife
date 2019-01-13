@@ -14,11 +14,23 @@ var countArr = [];
 var mark = false;
 var interval;
 
+function getRandomColor() {
+    let r = (Math.floor(Math.random() * 255) + 1).toString(16);
+    let g = (Math.floor(Math.random() * 255) + 1).toString(16);
+    let b = (Math.floor(Math.random() * 255) + 1).toString(16);
+    
+    r = r.length > 1 ? r : '0' + r;
+    g = g.length > 1 ? g : '0' + g;
+    b = b.length > 1 ? b : '0' + b;
+    
+    return `#${r}${g}${b}`;
+}
+
 window.onload = function() {
-        resetCountArr();
-        fillArr();
-        drawCells();
-    }
+    resetCountArr();
+    fillArr();
+    drawCells();
+}
     
 start.onclick = function(e) {
     e.preventDefault();
@@ -46,15 +58,18 @@ window.onclick = function(e) {
 randomize.onclick = function(e) {
     clearField();
     arr = [];
+    
     for (var i = 0; i < 100; i++) {
         var subarr = [];
+        
         for (var j = 0; j < 100; j++) {
-            if (Math.random()<0.2) {
-                subarr.push(true);
+            if (Math.random() < 0.2) {
+                subarr.push({ color: getRandomColor(), status: true });
             } else {
-                subarr.push(false);
+                subarr.push({ color: getRandomColor(), status: false });
             }
         }
+
         arr.push(subarr);
     }
     
@@ -63,18 +78,20 @@ randomize.onclick = function(e) {
 
 function drawCells() {
     field.beginPath();
+    
     for (var i = cellSize; i < width; i += cellSize) {
         field.moveTo(i, 0);
         field.lineTo(i, width);
         field.moveTo(0, i);
         field.lineTo(width, i);
     }
+    
     field.closePath();
     field.strokeStyle = "lightgray";
     field.stroke();
 }
 
-function drawCell(x, y) {
+function drawCell(x, y, color) {
     x = x * cellSize + 1;
     y = y * cellSize + 1;
     canvas.beginPath();
@@ -84,6 +101,7 @@ function drawCell(x, y) {
     canvas.lineTo(x + cellSize - 2, y);
     canvas.lineTo(x, y);
     canvas.closePath();
+    canvas.fillStyle = color;
     canvas.fill();
 }
 
@@ -95,22 +113,28 @@ function eraseCell(x, y) {
 
 function fillArr() {
     arr = [];
+    
     for (var i = 0; i < 100; i++) {
         var subarr = [];
+        
         for (var j = 0; j < 100; j++) {
-            subarr.push(false);
+            subarr.push({ color: getRandomColor(), status: false });
         }
+        
         arr.push(subarr);
     }
 }
 
 function resetCountArr() {
     countArr = [];
+    
     for (var i = 0; i < 100; i++) {
         var countSubarr = [];
+        
         for (var j = 0; j < 100; j++) {
             countSubarr.push(0);
         }
+        
         countArr.push(countSubarr);
     }
 }
@@ -128,17 +152,22 @@ function onClick(x, y) {
             y -= cellSize;
             posY++;
         }
-        if (!arr[posX][posY]) {
-            drawCell(posX, posY);
-            arr[posX][posY] = true;
+        
+        if (!arr[posX][posY].status) {
+            drawCell(posX, posY, arr[posX][posY].color);
+            arr[posX][posY].status = true;
         } else {
             eraseCell(posX, posY);
-            arr[posX][posY] = false;
+            arr[posX][posY].status = false;
         }
     }
 }
 
 function onStart() {
+    if (interval){
+        return;
+    }
+    
     interval = setInterval(function() {
         if (mark) {
             clearField();
@@ -150,46 +179,52 @@ function onStart() {
     }, DELTA_TIME);
 }
 
+let qwe = true;
+
 function countNearbyCells() {
     for (var i = 1; i < 99; i++) {
         for (var j = 1; j < 99; j++) {
-            countArr[i][j] += Number(arr[i - 1][j]);
-            countArr[i][j] += Number(arr[i + 1][j]);
-            countArr[i][j] += Number(arr[i][j - 1]);
-            countArr[i][j] += Number(arr[i][j + 1]);
-            countArr[i][j] += Number(arr[i + 1][j + 1]);
-            countArr[i][j] += Number(arr[i - 1][j + 1]);
-            countArr[i][j] += Number(arr[i + 1][j - 1]);
-            countArr[i][j] += Number(arr[i - 1][j - 1]);
+            countArr[i][j] += Number(arr[i - 1][j].status);
+            countArr[i][j] += Number(arr[i + 1][j].status);
+            countArr[i][j] += Number(arr[i][j - 1].status);
+            countArr[i][j] += Number(arr[i][j + 1].status);
+            countArr[i][j] += Number(arr[i + 1][j + 1].status);
+            countArr[i][j] += Number(arr[i - 1][j + 1].status);
+            countArr[i][j] += Number(arr[i + 1][j - 1].status);
+            countArr[i][j] += Number(arr[i - 1][j - 1].status);
         }
     }
 }
 
 function nextGeneration() {
     var newarr = [];
+    
     for (var i = 0; i < 100; i++) {
         var subarr = [];
+        
         for (var j = 0; j < 100; j++) {
-            if ((countArr[i][j] > 3 || countArr[i][j] < 2) && arr[i][j]) {
-                subarr.push(false);
-            } else if ((countArr[i][j] == 2 || countArr[i][j] == 3) && arr[i][j]) {
-                subarr.push(true);
-            } else if (countArr[i][j] == 3 && !arr[i][j]) {
-                subarr.push(true);
+            if ((countArr[i][j] > 3 || countArr[i][j] < 2) && arr[i][j].status) {
+                subarr.push({color: arr[i][j].color, status: false});
+            } else if ((countArr[i][j] == 2 || countArr[i][j] == 3) && arr[i][j].status) {
+                subarr.push({color: arr[i][j].color, status: true});
+            } else if (countArr[i][j] == 3 && !arr[i][j].status) {
+                subarr.push({color: arr[i][j].color, status: true});
             } else {
-                subarr.push(false);
+                subarr.push({color: arr[i][j].color, status: false});
             }
         }
+        
         newarr.push(subarr);
     }
+    
     arr = newarr;
 }
 
 function drawFromArr() {
     for (var i = 0; i < 100; i++) {
         for (var j = 0; j < 100; j++) {
-            if (arr[i][j]) {
-                drawCell(i, j);
+            if (arr[i][j].status) {
+                drawCell(i, j, arr[i][j].color);
             }
         }
     }
